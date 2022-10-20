@@ -15,7 +15,18 @@ async function main(){
     var contractMapGasUsed = new Map();
 
     for (let i = startBlock; i<endblock ; i++) {
-        console.log("Block: " + i);
+
+        try {
+            await web3.eth.net.isListening()
+        } catch (error) {
+            console.log('ERR : ' + error+'\n')
+            await timer(1500)
+            web3 = new Web3(Web3.givenProvider || WSWEB3);
+            continue
+        }
+
+        try {
+            console.log("Block: " + i);
         var blockObject = await web3.eth.getBlock(i);
         var allTransactions = blockObject.transactions;
         for (let j = 0; j < allTransactions.length; j++) {
@@ -33,6 +44,10 @@ async function main(){
                 contractMapGasUsed.set(tx_to, parseInt(gasUsed));
             }
         }
+           
+        } catch (error) {
+            continue
+        }
         
     }
 
@@ -41,36 +56,20 @@ async function main(){
     console.log(contractMapTo)
     console.log(contractMapGasUsed)
 
-    await fs.appendFile(`./output/outTo-${now}.csv`, `contract, txs` , function (err) {
+    await fs.appendFile(`./output/out-${now}.csv`, `contract, txs, gasUsed` , function (err) {
         if (err) throw err;
-        console.log('Created output file : ' + `./output/outTo-${now}.csv`);
+        console.log('Created output file : ' + `./output/out-${now}.csv`);
     });
 
     await timer(1000)
 
 
     for (var [key, value] of contractMapTo.entries()) {
-        await fs.appendFile(`./output/outTo-${now}.csv`, `\n${key}, ${value}` , function (err) {
+        await fs.appendFile(`./output/out-${now}.csv`, `\n${key}, ${value}, ${contractMapGasUsed.get(key)}` , function (err) {
             if (err) throw err;
             
         });
     }
-
-    await fs.appendFile(`./output/outGasUsed-${now}.csv`, `contract, gasUsed` , function (err) {
-        if (err) throw err;
-        console.log('Created output file : ' + `./output/outGasUsed-${now}.csv`);
-    });
-
-    await timer(1000)
-
-
-    for (var [key, value] of contractMapGasUsed.entries()) {
-        await fs.appendFile(`./output/outGasUsed-${now}.csv`, `\n${key}, ${value}` , function (err) {
-            if (err) throw err;
-            
-        });
-    }
-
 
     await timer(10000)
 
